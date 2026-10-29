@@ -1,0 +1,609 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>海大電機島</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chiron+GoRound+TC:wght@500;700&family=Noto+Sans+TC:wght@400;500;700&display=swap">
+<style>
+/* Layout: full-screen island map on the left, details panel on the right (stacked on phones).
+   Palette: harbor teal ink, rainy-port sea blues, moss land, four grade colours (green/blue/orange/violet). */
+:root{
+  --bg:#e6f0f1; --ink:#12313a; --muted:#4b6770; --panel:#fbfdfd; --line:#c2d6da;
+  --sea1:#a9d6df; --sea2:#86c0cf; --foam:#ffffff; --wave:#ffffff;
+  --land1:#c3df94; --land2:#9ccb73; --sand:#efe2b4; --coast:#5d9370; --tree:#4f8f5a; --trunk:#7a5b3a;
+  --path:#f8f3dc; --wall:#fffdf4; --roofshade:#00000022;
+  --g1:#2a9650; --g2:#2c7bd0; --g3:#e07a14; --g4:#a04bc2; --g5:#0e8a8c; --g6:#c4491f; --chair:#1b6c7b;
+  --cloud:#f4f8f9; --rain:#3b6f86;
+  --shadow:#0b2a3322;
+  --font-d:"Chiron GoRound TC","Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
+  --font-b:"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0b1820; --ink:#e2eff1; --muted:#9ab5bc; --panel:#12262f; --line:#27434d;
+  --sea1:#143a4b; --sea2:#0f2e3d; --foam:#7fb4c4; --wave:#6aa0b2;
+  --land1:#3b6b45; --land2:#2f5a3a; --sand:#5f5b45; --coast:#8fc29a; --tree:#244d30; --trunk:#6b5236;
+  --path:#8a8466; --wall:#cfe0e2; --roofshade:#00000044;
+  --g1:#52c97b; --g2:#5ea8f2; --g3:#f5a24d; --g4:#cf84ea; --g5:#3cc0c2; --g6:#f0825a; --chair:#4fb3c4;
+  --cloud:#4a6573; --rain:#9fd0e0; --shadow:#00000055; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0b1820; --ink:#e2eff1; --muted:#9ab5bc; --panel:#12262f; --line:#27434d;
+  --sea1:#143a4b; --sea2:#0f2e3d; --foam:#7fb4c4; --wave:#6aa0b2;
+  --land1:#3b6b45; --land2:#2f5a3a; --sand:#5f5b45; --coast:#8fc29a; --tree:#244d30; --trunk:#6b5236;
+  --path:#8a8466; --wall:#cfe0e2; --roofshade:#00000044;
+  --g1:#52c97b; --g2:#5ea8f2; --g3:#f5a24d; --g4:#cf84ea; --g5:#3cc0c2; --g6:#f0825a; --chair:#4fb3c4;
+  --cloud:#4a6573; --rain:#9fd0e0; --shadow:#00000055; color-scheme:dark}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font-b);font-size:15px;line-height:1.55;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:10px}
+button{font:inherit;color:inherit}
+.app{height:100%;display:flex;flex-direction:column;gap:10px;min-height:0}
+header.top{display:flex;flex-wrap:wrap;align-items:center;gap:8px 18px;justify-content:space-between}
+.brand h1{margin:0;font-family:var(--font-d);font-weight:700;font-size:1.55rem;line-height:1.15;letter-spacing:.02em}
+.brand p{margin:2px 0 0;color:var(--muted);font-size:.86rem}
+.tools{display:flex;gap:6px;flex-wrap:wrap}
+.btn{border:1.5px solid var(--line);background:var(--panel);border-radius:999px;padding:5px 14px;cursor:pointer;font-size:.88rem;min-height:34px;transition:background .15s,border-color .15s}
+.btn:hover{border-color:var(--chair)}
+.btn[aria-pressed="true"]{background:var(--chair);border-color:var(--chair);color:var(--panel)}
+.btn:focus-visible,.zbtn:focus-visible,.chip:focus-visible{outline:3px solid var(--g3);outline-offset:2px}
+main{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 370px;gap:12px}
+.mapwrap{position:relative;min-height:0;border-radius:18px;overflow:hidden;background:var(--sea1);border:1.5px solid var(--line)}
+#map{display:block;width:100%;height:100%;touch-action:manipulation;user-select:none}
+.home{position:absolute;top:10px;left:10px}
+.legend{position:absolute;top:10px;right:10px;display:flex;flex-direction:column;gap:3px;background:color-mix(in srgb,var(--panel) 88%,transparent);border:1.5px solid var(--line);border-radius:12px;padding:7px 10px;font-size:.76rem}
+.legend div{display:flex;align-items:center;gap:7px}
+.sw{width:22px;height:12px;border-radius:5px;border:2px solid var(--ink);background:transparent;flex:none}
+.sw.dash{border-style:dashed}.sw.dot{border-style:dotted}
+.dotc{width:10px;height:10px;border-radius:50%;flex:none}
+.bubble{position:absolute;left:10px;bottom:10px;right:10px;max-width:460px;display:flex;gap:10px;align-items:flex-end;pointer-events:none}
+.bubble>*{pointer-events:auto}
+.avatar{flex:none;width:56px;height:62px;background:var(--panel);border:1.5px solid var(--line);border-radius:14px;display:grid;place-items:center}
+.say{background:var(--panel);border:1.5px solid var(--line);border-radius:14px 14px 14px 4px;padding:9px 12px;font-size:.88rem;min-width:0;box-shadow:0 4px 14px var(--shadow)}
+.say b{font-family:var(--font-d);color:var(--chair)}
+.say .go{margin-top:6px}
+aside.panel{min-height:0;overflow-y:auto;background:var(--panel);border:1.5px solid var(--line);border-radius:18px;padding:16px 16px 18px;min-width:0}
+.panel h2{margin:0 0 4px;font-family:var(--font-d);font-size:1.25rem;line-height:1.25;text-wrap:balance}
+.panel h3{margin:16px 0 6px;font-size:.92rem;font-family:var(--font-d)}
+.panel p{margin:6px 0}
+.sub{color:var(--muted);font-size:.86rem}
+.tag{display:inline-block;border-radius:999px;padding:1px 10px;font-size:.78rem;border:1.5px solid currentColor;margin:0 4px 4px 0}
+.zlist{display:grid;gap:7px;margin:10px 0 0;padding:0;list-style:none}
+.zbtn{width:100%;display:flex;align-items:center;gap:10px;text-align:left;border:1.5px solid var(--line);background:transparent;border-radius:12px;padding:8px 10px;cursor:pointer;min-height:48px}
+.zbtn:hover{border-color:var(--zc,var(--chair))}
+.zbadge{flex:none;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;color:#fff;font-family:var(--font-d);font-weight:700;background:var(--zc)}
+.zbtn small{display:block;color:var(--muted);font-size:.78rem}
+.cgroup{margin-top:8px}
+.cgroup h3{margin:12px 0 6px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:2px solid var(--zc,var(--chair));background:transparent;border-radius:10px;padding:3px 10px;cursor:pointer;font-size:.86rem;min-height:30px}
+.chip.dash{border-style:dashed}.chip.dot{border-style:dotted}
+.chip:hover{background:color-mix(in srgb,var(--zc,var(--chair)) 16%,transparent)}
+.chip.dim{opacity:.3}
+.seq{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:6px}
+.seq i{font-style:normal;color:var(--muted)}
+label.chk{display:flex;gap:8px;align-items:center;font-size:.88rem;margin-top:12px}
+table{border-collapse:collapse;width:100%;font-size:.84rem}
+th,td{text-align:left;padding:5px 6px;border-bottom:1px solid var(--line)}
+th{color:var(--muted);font-weight:500}
+.tw{overflow-x:auto}
+.back{margin-bottom:8px}
+
+/* SVG parts */
+.zone{cursor:pointer}
+.zone .patch{opacity:.3;transition:opacity .2s}
+.zone:hover .patch,.zone:focus-visible .patch,.zone.on .patch{opacity:.55}
+.zone:focus-visible{outline:none}
+.zone:focus-visible .hit{stroke:var(--ink);stroke-width:3;stroke-dasharray:5 4}
+.zone .bld{transition:transform .2s}
+.zone:hover .bld{transform:translateY(-3px)}
+.hit{fill:transparent;stroke:none}
+.lbl text{font-family:var(--font-d);font-weight:700;font-size:12.5px;fill:var(--ink)}
+.lbl rect{fill:var(--panel);stroke:var(--line);stroke-width:1.5}
+.pill rect{fill:color-mix(in srgb,var(--zc) 16%,var(--panel));stroke:var(--zc)}
+.pill text{font-size:11px;fill:var(--ink);font-family:var(--font-b);font-weight:500}
+.pill{cursor:pointer;animation:pop .35s both}
+.pill:hover rect,.pill:focus-visible rect{fill:color-mix(in srgb,var(--zc) 34%,var(--panel))}
+.pill:focus-visible{outline:none}
+.pill:focus-visible rect{stroke-width:3.2}
+.pill.dim{opacity:.22}
+.boardbg{fill:color-mix(in srgb,var(--panel) 90%,transparent);stroke:var(--zc);stroke-width:1.5}
+.btitle{font-size:11px;font-weight:700;fill:var(--muted);font-family:var(--font-d)}
+@keyframes pop{from{opacity:0}to{opacity:1}}
+.stu{cursor:pointer}
+.stu .ring{display:none;fill:none;stroke:var(--ink);stroke-width:1.6;stroke-dasharray:3 2}
+.stu.sel .ring{display:block}
+.stu .leg{stroke:var(--ink);stroke-width:2.4;stroke-linecap:round;transform-box:fill-box;transform-origin:50% 0}
+.stu.moving .leg.l{animation:stepL .32s infinite alternate ease-in-out}
+.stu.moving .leg.r{animation:stepR .32s infinite alternate ease-in-out}
+.stu.moving .bob{animation:bob .32s infinite alternate ease-in-out}
+.stu.study .bob{animation:nod 1.1s infinite alternate ease-in-out}
+@keyframes stepL{from{transform:rotate(26deg)}to{transform:rotate(-26deg)}}
+@keyframes stepR{from{transform:rotate(-26deg)}to{transform:rotate(26deg)}}
+@keyframes bob{from{transform:translateY(0)}to{transform:translateY(-1.8px)}}
+@keyframes nod{from{transform:translateY(0)}to{transform:translateY(-1px)}}
+.stag rect{fill:var(--panel);stroke:var(--line);stroke-width:1}
+.stag text{font-size:9.5px;fill:var(--ink);font-family:var(--font-b);font-weight:500}
+.shadow{fill:var(--shadow)}
+.wave{fill:none;stroke:var(--wave);stroke-width:1.6;stroke-linecap:round;opacity:.45}
+.foam{fill:none;stroke:var(--foam);stroke-width:3;stroke-dasharray:2 9;stroke-linecap:round;opacity:.8;animation:foam 6s linear infinite}
+@keyframes foam{to{stroke-dashoffset:-44}}
+.boat{animation:sail 46s linear infinite alternate}
+.boat.b2{animation-duration:62s;animation-delay:-20s}
+@keyframes sail{from{transform:translateX(0)}to{transform:translateX(150px)}}
+#rain{display:none}
+body.rainy #rain{display:block}
+.drop{stroke:var(--rain);stroke-width:1.3;stroke-linecap:round;opacity:.7;animation:fall .9s linear infinite}
+@keyframes fall{from{transform:translate(0,-60px)}to{transform:translate(-14px,60px)}}
+.cloud{fill:var(--cloud);opacity:.9;animation:drift 70s linear infinite alternate}
+@keyframes drift{from{transform:translateX(-40px)}to{transform:translateX(60px)}}
+.wave1{animation:wv 5s ease-in-out infinite alternate}
+@keyframes wv{from{transform:translateX(-4px)}to{transform:translateX(4px)}}
+.arm{transform-box:fill-box;transform-origin:0% 100%;animation:wavearm 1.2s ease-in-out infinite alternate}
+@keyframes wavearm{from{transform:rotate(-14deg)}to{transform:rotate(18deg)}}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+}
+@media (max-width:860px){
+  html,body{height:auto}
+  .app{height:auto}
+  main{display:flex;flex-direction:column}
+  .mapwrap{height:62vh;min-height:430px}
+  aside.panel{overflow:visible}
+  .legend{display:none}
+  .brand h1{font-size:1.3rem}
+}
+</style>
+
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <h1>海大電機島</h1>
+      <p>國立臺灣海洋大學電機工程學系・大學部課程地圖</p>
+    </div>
+    <div class="tools">
+      <button class="btn" id="tourBtn" type="button">系主任帶路</button>
+      <button class="btn" id="rainBtn" type="button" aria-pressed="false">雨港</button>
+      <button class="btn" id="themeBtn" type="button">日／夜</button>
+    </div>
+  </header>
+  <main>
+    <div class="mapwrap">
+      <svg id="map" role="group" aria-label="基隆市形狀的電機系課程島"></svg>
+      <button class="btn home" id="homeBtn" type="button" hidden>回到全島</button>
+      <div class="legend" aria-label="圖例">
+        <div><span class="sw"></span>實線框：核心課程</div>
+        <div><span class="sw dash"></span>虛線框：一般必修</div>
+        <div><span class="sw dot"></span>點線框：領域、共同課程</div>
+        <div><span class="dotc" style="background:var(--g1)"></span><span class="dotc" style="background:var(--g2)"></span><span class="dotc" style="background:var(--g3)"></span><span class="dotc" style="background:var(--g4)"></span>大一至大四學生</div>
+      </div>
+      <div class="bubble">
+        <div class="avatar" aria-hidden="true"><svg id="miniChair" width="46" height="54" viewBox="-24 -62 48 62"></svg></div>
+        <div class="say" aria-live="polite"><b>系主任</b><div id="sayText"></div><div class="go"><button class="btn" id="sayTour" type="button">帶我逛逛</button></div></div>
+      </div>
+    </div>
+    <aside class="panel" id="panel" aria-live="polite"></aside>
+  </main>
+</div>
+
+<script>
+(function(){
+'use strict';
+const NS='http://www.w3.org/2000/svg';
+const $=s=>document.querySelector(s);
+const el=(n,a,p)=>{const e=document.createElementNS(NS,n);if(a)for(const k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e};
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const X=lon=>(lon-121.64)*5000+60, Y=lat=>(25.19-lat)*5000+60;
+
+/* ---------- Data (from the three uploaded .docx files) ---------- */
+const GRADES={1:{name:'大一',place:'新生灣',v:'--g1',lon:121.700,lat:25.150},
+              2:{name:'大二',place:'電路坡',v:'--g2',lon:121.725,lat:25.118},
+              3:{name:'大三',place:'核心嶺',v:'--g3',lon:121.760,lat:25.108},
+              4:{name:'大四',place:'領域港',v:'--g4',lon:121.782,lat:25.135}};
+const D={
+ '計算機概論':'認識電腦硬體、軟體與資訊處理的基本概念。',
+ '計算機實習':'動手操作電腦系統，練習後續課程會用到的工具。',
+ '程式語言':'學習程式設計的語法與邏輯，是資料結構的基礎。',
+ '微積分':'極限、微分與積分，工程課程共同使用的數學語言。',
+ '普通物理':'力學、熱學與電磁等基本物理概念。',
+ '普通物理實驗':'用實驗驗證普通物理的原理，練習量測與寫報告。',
+ '工程數學(Ⅰ)':'微分方程等工程常用的數學方法。',
+ '工程數學(Ⅱ)':'延續工程數學(Ⅰ)，進一步的工程數學工具。',
+ '電路學':'電阻、電容、電感與電路分析方法，電機專業的起點。',
+ '交換電路與邏輯設計':'數位邏輯，以及組合電路與序向電路的設計。',
+ '電磁學':'靜電、靜磁與電磁感應，通往電磁波與電波領域。',
+ '線性代數':'矩陣、向量空間與線性轉換，常用在訊號、控制與資料處理。',
+ '電子學':'二極體、電晶體與放大電路，分三個學期依序修習。',
+ '電工實驗':'親手搭建並量測電機電子電路，從大二到大四共五個學期。',
+ '電磁波':'波動方程式、傳播與輻射，電波領域的基礎。',
+ '訊號與系統':'用時域與頻域分析訊號與系統，通訊與控制共用的語言。',
+ '機率學':'隨機變數與機率分布，通訊與訊號處理常用。',
+ '資料結構':'陣列、鏈結串列、樹與圖等資料的組織方式。',
+ '複變函數':'複數與解析函數，用於訊號、電路與電磁分析。',
+ '近代物理':'量子與原子物理入門，連接固態電子。',
+ '自動控制':'回授控制系統的建模、穩定度與設計。',
+ '電機機械':'變壓器、馬達與發電機等電能轉換設備。',
+ '通訊工程':'調變、頻寬與雜訊等通訊系統的基本原理。',
+ '電子電路':'運算放大器與類比電路設計，延續電子學。',
+ '六選四(必選)':'核心課程中六門選修四門。關聯圖沒有標示是哪六門，請以系上公告為準。'
+};
+// [grade, semester, name, core]  core = solid border in the source chart
+const C=[
+ [1,'上','計算機概論',0],[1,'上','計算機實習',0],[1,'上','普通物理',0],[1,'上','程式語言',0],[1,'上','普通物理實驗',0],[1,'上','微積分',0],
+ [1,'下','普通物理',0],[1,'下','普通物理實驗',0],[1,'下','微積分',0],[1,'下','工程數學(Ⅰ)',0],[1,'下','電路學',0],[1,'下','交換電路與邏輯設計',0],
+ [2,'上','工程數學(Ⅱ)',0],[2,'上','電磁學',0],[2,'上','線性代數',0],[2,'上','電路學',0],[2,'上','電子學',0],[2,'上','電工實驗',0],
+ [2,'下','電子學',0],[2,'下','電工實驗',0],[2,'下','電磁波',0],[2,'下','訊號與系統',0],[2,'下','機率學',0],[2,'下','資料結構',1],[2,'下','複變函數',1],
+ [3,'上','電子學',0],[3,'上','電工實驗',0],[3,'上','近代物理',1],[3,'上','自動控制',1],[3,'上','電機機械',1],[3,'上','通訊工程',1],
+ [3,'下','電子電路',1],[3,'下','電工實驗',0],[3,'下','六選四(必選)',1],
+ [4,'上','電工實驗',0]
+];
+const DOMAINS=[['通訊與訊號處理領域','無線與有線通訊、數位訊號處理。'],['電力與電子電路領域','電力電子、電力系統與電路設計。'],['控制領域','回授控制、機器人與系統整合。'],['固態電子領域','半導體元件與其製程。'],['電波領域','天線、微波與電磁波應用。'],['資訊科技領域','計算機系統、網路與軟體應用。']];
+const COMMON=[['國文領域','語文與表達。'],['外文領域','外語能力訓練。'],['歷史領域','歷史領域通識。'],['博雅領域','跨領域博雅通識。'],['憲政領域','憲政與公民素養。'],['體育','體育課程。'],['勞動服務','勞動服務教育。']];
+const MINOR=[['程式設計','B5301M33'],['電磁波','B5302P49'],['電磁學','B5302P50'],['電路學①','B5311P48'],['電子學①','B5312P17'],['電子學②','B5322P17'],['電路學②','B5322P48'],['電子學③','B5333P17']];
+const MINOR2=[['工程數學(Ⅰ)','B530108U'],['工程數學(Ⅱ)','B530208V']];
+
+/* ---------- Items ---------- */
+const ITEMS={};let uid=0;
+function mk(o){o.id='i'+(uid++);ITEMS[o.id]=o;return o}
+const courseItems=C.map(([g,s,n,core])=>mk({kind:'course',zone:'z'+g,grade:g,sem:s,name:n,core:!!core,desc:D[n],order:g*2+(s==='下'?1:0)}));
+const domItems=DOMAINS.map(([n,d])=>mk({kind:'domain',zone:'z4',name:n,desc:d}));
+const comItems=COMMON.map(([n,d])=>mk({kind:'common',zone:'z5',name:n,desc:d}));
+const minItems=MINOR.map(([n,c])=>mk({kind:'minor',zone:'z6',name:n,code:c,desc:'輔系必修科目，課號 '+c+'。'}));
+const min2Items=MINOR2.map(([n,c])=>mk({kind:'minor',zone:'z6',name:n,code:c,desc:'非受予工學士的輔系同學須加修，課號 '+c+'。',extra:true}));
+const baseName=n=>n.replace(/[①②③]/g,'');
+
+/* ---------- Zones ---------- */
+const Z={};
+[1,2,3,4].forEach(g=>{const G=GRADES[g];Z['z'+g]={id:'z'+g,grade:g,name:G.name,place:G.place,v:G.v,x:X(G.lon),y:Y(G.lat),kind:'grade'}});
+Z.z5={id:'z5',name:'共同課程',place:'博雅坪',v:'--g5',x:X(121.688),y:Y(25.105),kind:'common'};
+Z.z6={id:'z6',name:'輔系',place:'和平輔系島',v:'--g6',x:820,y:178,kind:'minor'};
+const CHAIR={x:X(121.738),y:Y(25.140)};
+const ZORDER=['z1','z2','z3','z4','z5','z6'];
+const boardGroups=id=>{
+  if(id==='z4')return [{t:'大四上學期',items:courseItems.filter(i=>i.grade===4)},{t:'六大領域',items:domItems}];
+  if(id==='z5')return [{t:'領域課程',items:comItems.slice(0,5)},{t:'其他',items:comItems.slice(5)}];
+  if(id==='z6')return [{t:'必修科目',items:minItems},{t:'非工學士加修',items:min2Items}];
+  const g=Z[id].grade;return [{t:G(g)+'上學期',items:courseItems.filter(i=>i.grade===g&&i.sem==='上')},{t:'下學期',items:courseItems.filter(i=>i.grade===g&&i.sem==='下')}];
+};
+function G(g){return GRADES[g].name}
+
+/* ---------- Keelung outline (hand-traced approximation, lon/lat; swap this array to refine) ---------- */
+const KEELUNG=[[121.690,25.160],[121.705,25.172],[121.725,25.177],[121.742,25.170],[121.745,25.155],[121.752,25.148],[121.762,25.152],[121.770,25.162],[121.780,25.150],[121.795,25.148],[121.806,25.140],[121.800,25.125],[121.790,25.115],[121.790,25.100],[121.775,25.090],[121.765,25.075],[121.745,25.065],[121.735,25.050],[121.715,25.052],[121.700,25.062],[121.690,25.078],[121.665,25.085],[121.660,25.100],[121.672,25.115],[121.668,25.130],[121.680,25.145]];
+const POLY=KEELUNG.map(([a,b])=>[X(a),Y(b)]);
+function smooth(p){const n=p.length;let d='M'+p[0][0]+','+p[0][1];for(let i=0;i<n;i++){const a=p[(i-1+n)%n],b=p[i],c=p[(i+1)%n],e=p[(i+2)%n];d+='C'+[b[0]+(c[0]-a[0])/6,b[1]+(c[1]-a[1])/6,c[0]-(e[0]-b[0])/6,c[1]-(e[1]-b[1])/6,c[0],c[1]].map(v=>v.toFixed(1)).join(',')}return d+'Z'}
+function inside(x,y,P){let r=false;for(let i=0,j=P.length-1;i<P.length;j=i++){const a=P[i],b=P[j];if((a[1]>y)!==(b[1]>y)&&x<(b[0]-a[0])*(y-a[1])/(b[1]-a[1])+a[0])r=!r}return r}
+function seeded(s){return()=>{s=(s*16807)%2147483647;return(s-1)/2147483646}}
+
+/* ---------- Scene ---------- */
+const svg=$('#map');
+const defs=el('defs',null,svg);
+const clip=el('clipPath',{id:'clipI'},defs);
+const LANDD=smooth(POLY);
+el('path',{d:LANDD},clip);
+const grad=el('linearGradient',{id:'landg',x1:0,y1:0,x2:0,y2:1},defs);
+el('stop',{offset:0,style:'stop-color:var(--land1)'},grad);el('stop',{offset:1,style:'stop-color:var(--land2)'},grad);
+const sg=el('linearGradient',{id:'seag',x1:0,y1:0,x2:0,y2:1},defs);
+el('stop',{offset:0,style:'stop-color:var(--sea1)'},sg);el('stop',{offset:1,style:'stop-color:var(--sea2)'},sg);
+el('rect',{x:-400,y:-300,width:1900,height:1400,fill:'url(#seag)'},svg);
+
+const rnd=seeded(7);
+const waves=el('g',null,svg);
+for(let i=0;i<46;i++){const x=rnd()*1200-50,y=rnd()*860-20;if(inside(x,y,POLY))continue;el('path',{class:'wave wave1',d:`M${x},${y}q8,-6 16,0t16,0`},waves)}
+
+const isl=el('g',null,svg);
+el('path',{d:LANDD,fill:'none',stroke:'var(--shadow)','stroke-width':26,'stroke-linejoin':'round',transform:'translate(5,7)'},isl);
+el('path',{d:LANDD,fill:'none',stroke:'var(--sand)','stroke-width':18,'stroke-linejoin':'round'},isl);
+el('path',{d:LANDD,fill:'url(#landg)',stroke:'var(--coast)','stroke-width':2},isl);
+el('path',{d:LANDD,class:'foam',transform:'scale(1)'},isl);
+// Heping islet
+const IS=[[790,176],[806,158],[834,156],[852,170],[850,194],[828,206],[800,200]];
+const ISD=smooth(IS);
+el('path',{d:ISD,fill:'none',stroke:'var(--sand)','stroke-width':14,'stroke-linejoin':'round'},isl);
+el('path',{d:ISD,fill:'url(#landg)',stroke:'var(--coast)','stroke-width':2},isl);
+el('line',{x1:826,y1:206,x2:838,y2:272,stroke:'var(--path)','stroke-width':5,'stroke-dasharray':'4 3'},isl);
+// Keelung Islet
+el('path',{d:smooth([[1018,92],[1036,76],[1058,82],[1062,100],[1040,112]]),fill:'url(#landg)',stroke:'var(--coast)','stroke-width':2},isl);
+const tl=el('text',{x:1040,y:132,'text-anchor':'middle','font-size':11,fill:'var(--ink)','font-family':'var(--font-d)'},isl);tl.textContent='基隆嶼';
+
+// footpaths
+const paths=el('g',{'clip-path':'url(#clipI)'},svg);
+[['z1','c'],['c','z2'],['z2','z5'],['z2','z3'],['z3','z4'],['z4','c'],['z1','z2']].forEach(([a,b])=>{
+  const A=a==='c'?CHAIR:Z[a],B=b==='c'?CHAIR:Z[b];
+  el('path',{d:`M${A.x},${A.y}Q${(A.x+B.x)/2+10},${(A.y+B.y)/2-12} ${B.x},${B.y}`,fill:'none',stroke:'var(--path)','stroke-width':6,'stroke-linecap':'round','stroke-dasharray':'1 9',opacity:.95},paths)});
+// patches
+const patches=el('g',{'clip-path':'url(#clipI)'},svg);
+ZORDER.slice(0,5).forEach(id=>{const z=Z[id];el('ellipse',{cx:z.x,cy:z.y+8,rx:92,ry:72,fill:`var(${z.v})`,class:'pz','data-z':id,opacity:.22},patches)});
+// trees
+const trees=el('g',{'clip-path':'url(#clipI)'},svg);
+{const r=seeded(31);let n=0,tries=0;const spots=[...ZORDER.slice(0,5).map(k=>Z[k]),CHAIR];
+ while(n<46&&tries<900){tries++;const x=70+r()*860,y=70+r()*720;if(!inside(x,y,POLY))continue;if(spots.some(s=>Math.hypot(s.x-x,s.y-y)<84))continue;
+  const t=el('g',{transform:`translate(${x.toFixed(0)},${y.toFixed(0)}) scale(${(.7+r()*.6).toFixed(2)})`},trees);
+  el('rect',{x:-1.5,y:-4,width:3,height:6,fill:'var(--trunk)'},t);el('circle',{cx:0,cy:-10,r:8,fill:'var(--tree)'},t);el('circle',{cx:-4,cy:-6,r:5,fill:'var(--tree)'},t);n++}}
+// boats
+[[470,95,''],[160,70,'b2']].forEach(([x,y,c])=>{const g=el('g',{class:'boat '+c},svg);const b=el('g',{transform:`translate(${x},${y})`},g);
+  el('path',{d:'M-14,0h28l-5,7h-18z',fill:'var(--wall)',stroke:'var(--ink)','stroke-width':1.2},b);el('rect',{x:-4,y:-9,width:8,height:9,fill:`var(--g3)`},b);el('rect',{x:-1,y:-14,width:2,height:5,fill:'var(--ink)'},b)});
+
+/* buildings */
+function building(g,z){
+  const c=`var(${z.v})`;
+  const b=el('g',{class:'bld'},g);
+  el('ellipse',{cx:0,cy:2,rx:26,ry:6,class:'shadow'},b);
+  if(z.kind==='minor'){ // lighthouse
+    el('path',{d:'M-9,2L-6,-34h12l3,36z',fill:'var(--wall)',stroke:'var(--ink)','stroke-width':1.2},b);
+    el('rect',{x:-7,y:-22,width:14,height:7,fill:c},b);el('rect',{x:-7,y:-6,width:14,height:7,fill:c},b);
+    el('rect',{x:-8,y:-42,width:16,height:8,fill:'var(--g3)',stroke:'var(--ink)','stroke-width':1.2},b);
+    el('path',{d:'M-10,-42h20l-10,-9z',fill:c},b);
+  }else{
+    el('rect',{x:-19,y:-26,width:38,height:28,rx:2,fill:'var(--wall)',stroke:'var(--ink)','stroke-width':1.2},b);
+    el('path',{d:'M-24,-26L0,-46L24,-26z',fill:c,stroke:'var(--ink)','stroke-width':1.2},b);
+    el('rect',{x:-4,y:-14,width:8,height:16,fill:c},b);
+    el('rect',{x:-15,y:-21,width:7,height:7,fill:'var(--sea1)'},b);el('rect',{x:8,y:-21,width:7,height:7,fill:'var(--sea1)'},b);
+  }
+  const bd=el('g',{transform:'translate(0,-60)'},b);
+  el('circle',{r:11,fill:c,stroke:'var(--panel)','stroke-width':2},bd);
+  const t=el('text',{y:5,'text-anchor':'middle','font-size':z.kind==='grade'?14:12,'font-weight':700,fill:'#fff','font-family':'var(--font-d)'},bd);
+  t.textContent=z.kind==='grade'?String(z.grade):z.kind==='common'?'共':'輔';
+}
+const zoneLayer=el('g',null,svg);
+ZORDER.forEach(id=>{
+  const z=Z[id];
+  const g=el('g',{class:'zone',id:id,tabindex:0,role:'button','aria-label':`${z.name}・${z.place}，展開課程`,transform:`translate(${z.x},${z.y})`},zoneLayer);
+  if(id==='z6')el('ellipse',{class:'patch',cx:0,cy:4,rx:36,ry:24,fill:`var(${z.v})`},g);
+  else el('ellipse',{class:'patch',cx:0,cy:8,rx:92,ry:72,fill:`var(${z.v})`,'clip-path':'none'},g).style.display='none';
+  building(g,z);
+  const txt=`${z.name}・${z.place}`;const w=txt.length*13+14;
+  const l=el('g',{class:'lbl',transform:'translate(0,22)'},g);
+  el('rect',{x:-w/2,y:-11,width:w,height:21,rx:10.5},l);
+  const lt=el('text',{y:4,'text-anchor':'middle'},l);lt.textContent=txt;
+  el('circle',{class:'hit',cx:0,cy:-8,r:id==='z6'?52:84},g);
+  const hl=on=>{const p=patches.querySelector(`[data-z="${id}"]`);if(p)p.setAttribute('opacity',on||g.classList.contains('on')?.5:.22)};
+  g.addEventListener('mouseenter',()=>hl(true));g.addEventListener('mouseleave',()=>hl(false));g.addEventListener('focus',()=>hl(true));g.addEventListener('blur',()=>hl(false));
+  g.addEventListener('click',()=>{selectZone(id);hl(true)});
+  g.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();selectZone(id)}});
+});
+
+/* chair + hill */
+function drawChair(p,s){
+  const g=el('g',{transform:s},p);
+  el('ellipse',{cx:0,cy:1,rx:9,ry:3,class:'shadow'},g);
+  el('line',{x1:-2.5,y1:-12,x2:-2.5,y2:0,stroke:'var(--ink)','stroke-width':3,'stroke-linecap':'round'},g);
+  el('line',{x1:2.5,y1:-12,x2:2.5,y2:0,stroke:'var(--ink)','stroke-width':3,'stroke-linecap':'round'},g);
+  el('rect',{x:-8,y:-30,width:16,height:21,rx:5,fill:'var(--chair)'},g);
+  el('path',{d:'M-3,-30L0,-22L3,-30z',fill:'#fff'},g);
+  el('path',{d:'M-3.2,-27.5l3.2,2l3.2,-2l0,4l-3.2,-2l-3.2,2z',fill:'var(--g6)'},g);
+  el('path',{d:'M8,-27 q9,-3 10,-13',fill:'none',stroke:'var(--chair)','stroke-width':4,'stroke-linecap':'round',class:'arm'},g);
+  el('circle',{cx:18,cy:-41,r:2.6,fill:'#e8bf9b'},g);
+  el('path',{d:'M-8,-27 q-3,6 -1,12',fill:'none',stroke:'var(--chair)','stroke-width':4,'stroke-linecap':'round'},g);
+  el('circle',{cx:0,cy:-38,r:8.5,fill:'#ecc7a4'},g);
+  el('path',{d:'M-9,-39a9,9 0 0 1 18,0q-4,-5 -9,-4t-9,4z',fill:'#b9c3c8'},g);
+  el('circle',{cx:-3.2,cy:-38,r:3,fill:'none',stroke:'var(--ink)','stroke-width':1},g);
+  el('circle',{cx:3.2,cy:-38,r:3,fill:'none',stroke:'var(--ink)','stroke-width':1},g);
+  el('line',{x1:-0.2,y1:-38,x2:0.2,y2:-38,stroke:'var(--ink)','stroke-width':1},g);
+  el('path',{d:'M-2.5,-33q2.5,2 5,0',fill:'none',stroke:'var(--ink)','stroke-width':1,'stroke-linecap':'round'},g);
+  return g;
+}
+const chairG=el('g',{id:'chair',class:'zone',tabindex:0,role:'button','aria-label':'系主任，點一下開始導覽',transform:`translate(${CHAIR.x},${CHAIR.y})`},zoneLayer);
+el('ellipse',{cx:0,cy:6,rx:46,ry:20,fill:'var(--land2)',stroke:'var(--coast)','stroke-width':1.5},chairG);
+el('rect',{x:-30,y:-24,width:3,height:28,fill:'var(--ink)'},chairG);
+el('path',{d:'M-27,-24h20l-4,5l4,5h-20z',fill:'var(--chair)'},chairG);
+drawChair(chairG,'translate(10,2) scale(1.15)');
+{const l=el('g',{class:'lbl',transform:'translate(0,26)'},chairG);el('rect',{x:-26,y:-11,width:52,height:21,rx:10.5},l);const t=el('text',{y:4,'text-anchor':'middle'},l);t.textContent='系主任'}
+el('circle',{class:'hit',cx:0,cy:-14,r:46},chairG);
+chairG.addEventListener('click',()=>toggleTour());
+chairG.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();toggleTour()}});
+drawChair($('#miniChair'),'translate(-2,-1) scale(1.15)');
+
+/* students */
+const board=el('g',{id:'board'},svg);
+const stuLayer=el('g',{id:'stus'},svg);
+const SKIN=['#f1c9a5','#e0a982','#c68a62','#f6d7b8'],HAIR=['#2b2220','#4a3426','#1c1c28','#6b4a2f'];
+const students=[];
+const spotIn=(z)=>{for(let k=0;k<60;k++){const a=Math.random()*6.283,r=26+Math.random()*64,x=z.x+Math.cos(a)*r,y=z.y+10+Math.sin(a)*r*.72;if(inside(x,y,POLY))return[x,y]}return[z.x,z.y+34]};
+function lineOK(a,b,tx,ty){for(let t=.1;t<=1;t+=.1){if(!inside(a+(tx-a)*t,b+(ty-b)*t,POLY))return false}return true}
+function mkStudent(g){
+  const home=Z['z'+g];const [x,y]=spotIn(home);
+  const root=el('g',{class:'stu',tabindex:0,role:'button','aria-label':G(g)+'學生'},stuLayer);
+  const sc=el('g',{transform:'scale(.95)'},root);
+  el('circle',{class:'ring',cx:0,cy:-14,r:19},sc);
+  el('ellipse',{cx:0,cy:0,rx:7,ry:2.4,class:'shadow'},sc);
+  const flip=el('g',{class:'flip'},sc);
+  el('line',{class:'leg l',x1:-2,y1:-9,x2:-2,y2:0},flip);el('line',{class:'leg r',x1:2,y1:-9,x2:2,y2:0},flip);
+  const bob=el('g',{class:'bob'},flip);
+  el('rect',{x:-5.5,y:-20,width:11,height:12,rx:4,fill:`var(${GRADES[g].v})`},bob);
+  const n=el('text',{x:0,y:-11,'text-anchor':'middle','font-size':7.5,'font-weight':700,fill:'#fff','font-family':'var(--font-d)'},bob);n.textContent=g;
+  el('circle',{cx:0,cy:-25.5,r:5.6,fill:SKIN[(Math.random()*4)|0]},bob);
+  el('path',{d:'M-5.7,-26.2a5.7,5.7 0 0 1 11.4,0q-3,-2.6 -5.7,-2.4t-5.7,2.4z',fill:HAIR[(Math.random()*4)|0]},bob);
+  el('circle',{cx:1.2,cy:-25,r:.9,fill:'#222'},bob);el('circle',{cx:3.4,cy:-25,r:.9,fill:'#222'},bob);
+  if(g===4)el('path',{d:'M-8,-30.5L0,-34l8,3.5L0,-27z',fill:'#222'},bob);
+  const tag=el('g',{class:'stag'},root);tag.style.display='none';
+  el('rect',{x:-30,y:-52,width:60,height:15,rx:7.5},tag);const tt=el('text',{y:-41.5,'text-anchor':'middle'},tag);
+  const s={g,x,y,tx:x,ty:y,sp:22+Math.random()*16,mode:'idle',until:performance.now()+Math.random()*2500,course:null,root,flip,tag,tt,dir:1,rect:tag.firstChild};
+  root.addEventListener('click',e=>{e.stopPropagation();selectStudent(s)});
+  root.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();selectStudent(s)}});
+  students.push(s);place(s);return s;
+}
+function place(s){s.root.setAttribute('transform',`translate(${s.x.toFixed(1)},${s.y.toFixed(1)})`)}
+function pickCourse(s){const own=courseItems.filter(i=>i.grade===s.g);return own[(Math.random()*own.length)|0]}
+function setStudy(s,on){
+  s.root.classList.toggle('study',on);s.tag.style.display=on?'':'none';
+  if(on){s.course=pickCourse(s);const t=s.course.sem+'・'+baseName(s.course.name);s.tt.textContent=t;const w=Math.max(44,t.length*9.6+12);s.rect.setAttribute('x',-w/2);s.rect.setAttribute('width',w)}
+}
+function nextTarget(s,now){
+  const pool=Math.random()<.65?Z['z'+s.g]:Z[ZORDER[(Math.random()*5)|0]];
+  for(let k=0;k<12;k++){const [x,y]=spotIn(pool);if(lineOK(s.x,s.y,x,y)){s.tx=x;s.ty=y;s.mode='run';s.root.classList.add('moving');setStudy(s,false);return}}
+  s.until=now+800;
+}
+[1,2,3,4].forEach(g=>{for(let i=0;i<5;i++)mkStudent(g)});
+if(reduce)students.forEach(s=>setStudy(s,true));
+let last=performance.now(),sortT=0;
+function loop(now){
+  const dt=Math.min(.05,(now-last)/1000);last=now;
+  if(!reduce){
+    students.forEach(s=>{
+      if(s.mode==='run'){
+        const dx=s.tx-s.x,dy=s.ty-s.y,d=Math.hypot(dx,dy);
+        if(d<2){s.mode='study';s.root.classList.remove('moving');setStudy(s,true);s.until=now+3000+Math.random()*4500}
+        else{const st=Math.min(d,s.sp*dt);const nx=s.x+dx/d*st,ny=s.y+dy/d*st;if(inside(nx,ny,POLY)){s.x=nx;s.y=ny}else{s.mode='idle';s.root.classList.remove('moving');s.until=now}
+          if(Math.abs(dx)>1){const f=dx<0?-1:1;if(f!==s.dir){s.dir=f;s.flip.setAttribute('transform',f<0?'scale(-1,1)':'')}} place(s)}
+      }else if(now>s.until){nextTarget(s,now)}
+    });
+    if(now-sortT>350){sortT=now;[...students].sort((a,b)=>a.y-b.y).forEach(s=>stuLayer.appendChild(s.root))}
+  }
+  if(selStu){const s=selStu;const n=$('#stuNow');if(n)n.textContent=s.mode==='study'&&s.course?`正在上：${s.course.sem}學期「${baseName(s.course.name)}」`:s.mode==='run'?'正在跑去上課…':'在島上散步'}
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+/* rain */
+const rain=el('g',{id:'rain'},svg);
+{const r=seeded(5);for(let i=0;i<70;i++){const x=r()*1100,y=r()*800;const l=el('line',{class:'drop',x1:x,y1:y,x2:x-4,y2:y+14},rain);l.style.animationDelay=(-r()*0.9).toFixed(2)+'s';l.style.animationDuration=(0.7+r()*0.5).toFixed(2)+'s'}
+  [[200,60],[560,40],[860,70]].forEach(([x,y])=>{el('path',{class:'cloud',d:`M${x},${y}h110a22,22 0 0 0 -6,-42a28,28 0 0 0 -52,-8a26,26 0 0 0 -46,18a20,20 0 0 0 -6,32z`},rain)})}
+
+/* ---------- Camera ---------- */
+const mapEl=document.querySelector('.mapwrap');
+let view={cx:520,cy:420,w:1000},anim=null;
+function apply(){const cw=mapEl.clientWidth||800,ch=mapEl.clientHeight||600;const h=view.w*ch/cw;svg.setAttribute('viewBox',`${(view.cx-view.w/2).toFixed(1)} ${(view.cy-h/2).toFixed(1)} ${view.w.toFixed(1)} ${h.toFixed(1)}`)}
+function fitAll(){const cw=mapEl.clientWidth||800,ch=mapEl.clientHeight||600;return{cx:535,cy:410,w:Math.max(1010,820*cw/ch)}}
+function flyTo(t,ms){if(anim)cancelAnimationFrame(anim);if(reduce||!ms){view=t;apply();return}const f={...view},t0=performance.now();
+  const step=n=>{let k=Math.min(1,(n-t0)/ms);k=k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2;view={cx:f.cx+(t.cx-f.cx)*k,cy:f.cy+(t.cy-f.cy)*k,w:f.w+(t.w-f.w)*k};apply();if(k<1)anim=requestAnimationFrame(step)};anim=requestAnimationFrame(step)}
+new ResizeObserver(()=>{view=curZone?zoneView(curZone):fitAll();apply()}).observe(mapEl);
+const zoneView=id=>{const z=Z[id];const cw=mapEl.clientWidth||800;const w=cw<520?330:id==='z6'?330:470;return{cx:z.x,cy:z.y+(id==='z6'?110:112),w}};
+
+/* ---------- Board (course pills) ---------- */
+let curZone=null,onlyCore=false;
+function drawBoard(id){
+  board.textContent='';if(!id)return;
+  const z=Z[id],gr=boardGroups(id);
+  const g=el('g',{transform:`translate(${z.x},${z.y+44})`,style:`--zc:var(${z.v})`},board);
+  const colW=122,rowH=25,pad=8,rows=Math.max(...gr.map(x=>x.items.length));
+  const W=colW*2+pad*3,H=26+rows*rowH+pad;
+  el('rect',{class:'boardbg',x:-W/2,y:0,width:W,height:H,rx:14},g);
+  gr.forEach((grp,ci)=>{
+    const x0=-W/2+pad+ci*(colW+pad);
+    const t=el('text',{class:'btitle',x:x0+colW/2,y:17,'text-anchor':'middle'},g);t.textContent=grp.t;
+    grp.items.forEach((it,ri)=>{
+      const y=26+ri*rowH;
+      const p=el('g',{class:'pill'+(onlyCore&&!(it.kind==='course'&&it.core)?' dim':''),tabindex:0,role:'button','aria-label':it.name,'data-id':it.id,transform:`translate(${x0},${y})`,style:`animation-delay:${(ci*60+ri*35)}ms`},g);
+      const dash=it.kind==='course'?(it.core?'':'5 3'):it.kind==='minor'?'5 3':'1.6 3';
+      el('rect',{x:0,y:0,width:colW,height:21,rx:8,'stroke-width':it.kind==='course'&&it.core?2.4:1.5,'stroke-dasharray':dash},p);
+      const tx=el('text',{x:colW/2,y:14.2,'text-anchor':'middle'},p);tx.textContent=it.name;
+      p.addEventListener('click',e=>{e.stopPropagation();showItem(it.id)});
+      p.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();showItem(it.id)}});
+    });
+  });
+}
+
+/* ---------- Chair speech ---------- */
+const sayEl=$('#sayText');let typer=null;
+function say(t){clearInterval(typer);if(reduce){sayEl.textContent=t;return}let i=0;sayEl.textContent='';typer=setInterval(()=>{i+=2;sayEl.textContent=t.slice(0,i);if(i>=t.length)clearInterval(typer)},22)}
+const NARR={
+ z1:'大一打基礎：微積分、普通物理與實驗、計算機概論和程式語言。下學期電路學與交換電路與邏輯設計開始接上電機專業。',
+ z2:'大二是電機專業的主場：電磁學、電路學、電子學、訊號與系統，加上第一批電工實驗。資料結構、複變函數、機率學也在這一年。',
+ z3:'大三走進核心：自動控制、電機機械、通訊工程、近代物理，電子學修到第三學期，下學期接電子電路與六選四。',
+ z4:'大四依興趣選方向，共有六大領域：通訊與訊號處理、電力與電子電路、控制、固態電子、電波、資訊科技。',
+ z5:'共同課程包含國文、外文、歷史、博雅、憲政領域，以及體育與勞動服務。',
+ z6:'外系同學想輔修電機，必修科目至少要修 25 學分。電路學、電子學都要依序修習。'
+};
+say('歡迎來到海大電機島！島的輪廓是基隆，大一到大四的同學都在島上跑。點小人看他們在上什麼課，點區域展開課程。');
+
+/* ---------- Panel ---------- */
+const panel=$('#panel');
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const zc=id=>`style="--zc:var(${Z[id].v})"`;
+let selStu=null;
+function overview(){
+  curZone=null;selStu=null;board.textContent='';$('#homeBtn').hidden=true;
+  document.querySelectorAll('.zone.on').forEach(e=>e.classList.remove('on'));patches.querySelectorAll('.pz').forEach(e=>e.setAttribute('opacity',.22));
+  document.querySelectorAll('.stu.sel').forEach(e=>e.classList.remove('sel'));
+  const rows=ZORDER.map(id=>{const z=Z[id];const n=boardGroups(id).reduce((a,g)=>a+g.items.length,0);
+    return `<li><button class="zbtn" type="button" data-z="${id}" ${zc(id)}><span class="zbadge">${z.kind==='grade'?z.grade:z.kind==='common'?'共':'輔'}</span><span><b>${esc(z.name)}・${esc(z.place)}</b><small>${n} 項${z.kind==='grade'?'必修與核心課程':z.kind==='common'?'共同課程':z.kind==='minor'?'輔系科目':''}</small></span></button></li>`}).join('');
+  panel.innerHTML=`<h2>大學部課程地圖</h2><p class="sub">每個年級是島上的一個區域。實線框是核心課程，虛線框是一般必修。</p>
+  <ul class="zlist">${rows}</ul>
+  <h3>怎麼逛</h3><p class="sub">點小人，看這位同學現在上哪一門課。點區域，鏡頭會拉近並展開當學年的課程。點系主任，開始導覽。</p>`;
+  panel.querySelectorAll('.zbtn').forEach(b=>b.addEventListener('click',()=>selectZone(b.dataset.z)));
+  flyTo(fitAll(),700);
+}
+function selectZone(id,fromTour){
+  if(!fromTour)stopTour(true);
+  curZone=id;selStu=null;const z=Z[id];
+  document.querySelectorAll('.zone.on').forEach(e=>e.classList.remove('on'));$('#'+id).classList.add('on');patches.querySelectorAll('.pz').forEach(e=>e.setAttribute('opacity',e.dataset.z===id?.5:.22));
+  $('#homeBtn').hidden=false;drawBoard(id);flyTo(zoneView(id),800);
+  const subtitle=z.kind==='grade'?`${z.name}共 ${boardGroups(id).reduce((a,g)=>a+g.items.length,0)} 個項目`:z.kind==='minor'?'必修至少 25 學分':'';
+  let extra='';
+  if(z.kind==='minor'){
+    const r=a=>a.map(([n,c])=>`<tr><td>${esc(n)}</td><td>3</td><td>${esc(c)}</td></tr>`).join('');
+    extra=`<h3>輔系必修科目</h3><div class="tw"><table><tr><th>科目</th><th>學分</th><th>課號</th></tr>${r(MINOR)}</table></div>
+    <h3>非受予工學士須加修</h3><div class="tw"><table><tr><th>科目</th><th>學分</th><th>課號</th></tr>${r(MINOR2)}</table></div>
+    <p class="sub">應修學分：至少 25 學分，工程數學另加 6 學分。電路學為一下、二上課程，須依序修習。電子學為二上、二下、三上課程，須依序修習。</p>`;
+  }
+  const groups=z.kind==='minor'?'':boardGroups(id).map(g=>`<div class="cgroup"><h3>${esc(g.t)}</h3><div class="chips">${g.items.map(it=>`<button class="chip${it.kind==='course'?(it.core?'':' dash'):it.kind==='minor'?' dash':' dot'}" type="button" data-id="${it.id}" ${zc(id)}>${esc(it.name)}</button>`).join('')}</div></div>`).join('');
+  panel.innerHTML=`<button class="btn back" type="button" id="bk">← 全島</button><h2 ${zc(id)}><span class="tag" style="color:var(${z.v})">${esc(z.name)}</span>${esc(z.place)}</h2><p class="sub">${esc(subtitle)}</p>${z.kind==='grade'?`<label class="chk"><input type="checkbox" id="coreOnly"${onlyCore?' checked':''}>只看核心課程</label>`:''}${groups}${extra}`;
+  $('#bk').addEventListener('click',()=>{stopTour(true);overview();say('回到全島。想看哪個區域？')});
+  const co=$('#coreOnly');if(co)co.addEventListener('change',()=>{onlyCore=co.checked;applyCore()});
+  panel.querySelectorAll('.chip').forEach(c=>c.addEventListener('click',()=>showItem(c.dataset.id)));
+  applyCore();
+  say(NARR[id]);
+}
+function applyCore(){
+  document.querySelectorAll('.pill').forEach(p=>{const it=ITEMS[p.dataset.id];p.classList.toggle('dim',onlyCore&&!(it.kind==='course'&&it.core))});
+  panel.querySelectorAll('.chip').forEach(c=>{const it=ITEMS[c.dataset.id];c.classList.toggle('dim',onlyCore&&!(it.kind==='course'&&it.core))});
+}
+function showItem(id){
+  const it=ITEMS[id];if(!it)return;stopTour(true);
+  if(curZone!==it.zone){selectZone(it.zone,false)}
+  const z=Z[it.zone];
+  let tags='',seq='';
+  if(it.kind==='course'){
+    tags=`<span class="tag" style="color:var(${z.v})">${G(it.grade)}${it.sem}學期</span><span class="tag" style="color:var(--ink)">${it.core?'核心課程':'一般必修'}</span>`;
+    const same=courseItems.filter(c=>baseName(c.name).replace(/\(.+\)/,'')===it.name.replace(/\(.+\)/,'')).sort((a,b)=>a.order-b.order);
+    if(same.length>1){
+      const must=(it.name==='電路學'||it.name==='電子學')?'，須依序修習':'';
+      seq=`<h3>這門課的開課學期${must}</h3><div class="seq">${same.map((c,i)=>`${i?'<i>→</i>':''}<button class="chip${c.id===it.id?'':' dash'}" type="button" data-id="${c.id}" style="--zc:var(${Z[c.zone].v})">${G(c.grade)}${c.sem}</button>`).join('')}</div>`;
+    }
+  }else if(it.kind==='domain'){tags='<span class="tag" style="color:var(--g4)">大四領域</span>'}
+  else if(it.kind==='common'){tags='<span class="tag" style="color:var(--g5)">共同課程</span>'}
+  else{tags=`<span class="tag" style="color:var(--g6)">輔系</span><span class="tag" style="color:var(--ink)">3 學分</span>`}
+  panel.innerHTML=`<button class="btn back" type="button" id="bk">← ${esc(z.name)}</button><h2>${esc(it.name)}</h2><div>${tags}</div><p>${esc(it.desc||'')}</p>${seq}`;
+  $('#bk').addEventListener('click',()=>selectZone(it.zone));
+  panel.querySelectorAll('.seq .chip').forEach(c=>c.addEventListener('click',()=>showItem(c.dataset.id)));
+  say(it.kind==='course'?`「${baseName(it.name)}」在${G(it.grade)}${it.sem}學期。${it.desc}`:`${it.name}：${it.desc}`);
+}
+function selectStudent(s){
+  stopTour(true);selStu=s;
+  document.querySelectorAll('.stu.sel').forEach(e=>e.classList.remove('sel'));s.root.classList.add('sel');
+  const gz='z'+s.g;
+  panel.innerHTML=`<button class="btn back" type="button" id="bk">← 全島</button><h2><span class="tag" style="color:var(${GRADES[s.g].v})">${G(s.g)}</span>學生</h2><p id="stuNow"></p><p class="sub">${esc(G(s.g))}這一年的課程都在「${esc(Z[gz].place)}」。</p><button class="btn" type="button" id="goz" ${zc(gz)}>看${esc(G(s.g))}的課程</button>`;
+  $('#bk').addEventListener('click',()=>{overview();say('回到全島。')});
+  $('#goz').addEventListener('click',()=>selectZone(gz));
+  say(s.mode==='study'&&s.course?`這位${G(s.g)}同學正在上${s.course.sem}學期的「${baseName(s.course.name)}」。`:`這位${G(s.g)}同學正在島上走動，等一下就會進教室。`);
+}
+
+/* ---------- Tour ---------- */
+let tourT=null,tourI=0;
+function stopTour(silent){if(tourT){clearTimeout(tourT);tourT=null;$('#tourBtn').textContent='系主任帶路';$('#sayTour').textContent='帶我逛逛'}}
+function toggleTour(){if(tourT){stopTour();say('導覽先停在這裡。想看哪個區域，直接點它。');return}
+  $('#tourBtn').textContent='停止導覽';$('#sayTour').textContent='停止導覽';tourI=0;tourStep()}
+function tourStep(){
+  if(tourI>=ZORDER.length){overview();stopTour();say('導覽結束。點任何區域或小人，可以再看細節。');return}
+  selectZone(ZORDER[tourI],true);tourI++;
+  tourT=setTimeout(tourStep,Math.max(6500,NARR[ZORDER[tourI-1]].length*160));
+  if(!tourT)return;
+}
+$('#tourBtn').addEventListener('click',toggleTour);
+$('#sayTour').addEventListener('click',toggleTour);
+$('#homeBtn').addEventListener('click',()=>{stopTour(true);overview();say('回到全島。')});
+svg.addEventListener('click',e=>{if(!e.target.classList.contains('boardbg')&&(e.target===svg||e.target.tagName==='rect'||e.target.tagName==='path')){if(curZone||selStu){stopTour(true);overview()}}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){stopTour(true);overview()}});
+$('#rainBtn').addEventListener('click',e=>{const on=document.body.classList.toggle('rainy');e.currentTarget.setAttribute('aria-pressed',on);say(on?'基隆是雨港，帶把傘。':'雨停了。')});
+$('#themeBtn').addEventListener('click',()=>{const r=document.documentElement;const dark=r.getAttribute('data-theme')?r.getAttribute('data-theme')==='dark':matchMedia('(prefers-color-scheme: dark)').matches;r.setAttribute('data-theme',dark?'light':'dark')});
+
+view=fitAll();apply();overview();
+})();
+</script>
+
+</body>
+</html>
